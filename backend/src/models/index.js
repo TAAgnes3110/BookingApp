@@ -1,11 +1,18 @@
-const { sequelize } = require('../config/database');
+const models = {};
 
-// Initialize models
-// Lưu ý: sequelize có thể null khi file này được require lần đầu
-// Nhưng models chỉ được sử dụng sau khi connectDatabase() được gọi trong bin/server.js
-const models = {
-  User: require('./user.model')(sequelize),
+const initModels = (sequelize) => {
+  models.User = require('./user.model')(sequelize);
+  // Add other models here
+
+  // Setup associations if any
+  Object.keys(models).forEach(modelName => {
+    if (models[modelName].associate) {
+      models[modelName].associate(models);
+    }
+  });
+
+  return models;
 };
 
-module.exports = models;
+module.exports = { initModels, models };
 

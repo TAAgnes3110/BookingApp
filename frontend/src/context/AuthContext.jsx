@@ -11,7 +11,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check local storage for existing session
+    // Init User from LocalStorage + Logic to enhance Role
     const storedUser = localStorage.getItem('user');
     if (storedUser) {
       setUser(JSON.parse(storedUser));
@@ -19,131 +19,113 @@ export const AuthProvider = ({ children }) => {
     setLoading(false);
   }, []);
 
+  // --- MOCK AUTH FUNCTIONS (To be replaced with Real API calls) ---
+
   const login = async (identifier, password) => {
     return new Promise((resolve, reject) => {
       setTimeout(() => {
-        if (identifier && password) {
-          let mockUser;
-          if (identifier === 'admin' || identifier === 'admin@example.com') {
-            if (password !== 'admin123') {
-              reject(new Error('Mật khẩu admin không chính xác (Gợi ý: admin123)'));
-              return;
-            }
-            mockUser = {
-              id: 'admin_1',
-              name: 'Super Admin',
-              email: 'admin@example.com',
-              username: 'admin',
-              role: 'admin',
-              avatar: 'https://cdn-icons-png.flaticon.com/512/2304/2304226.png'
+        if (!identifier || !password) {
+          reject(new Error('Vui lòng nhập đầy đủ email và mật khẩu.'));
+          return;
+        }
+
+        // SIMULATE ADMIN LOGIN
+        if (identifier === 'admin' || identifier === 'admin@booking.com') {
+          if (password === '123456') { // Matches seed data password
+            const adminUser = {
+              id: 'c5e109f5-82a8-4678-b6b8-1a4714e75699', // From seed
+              email: 'admin@booking.com',
+              first_name: 'Admin',
+              last_name: 'Super',
+              role: 'super_admin', // Important: Matches Role Name in DB
+              role_id: 1,
+              avatar_url: 'https://ui-avatars.com/api/?name=Admin+Super&background=0D8ABC&color=fff'
             };
+            saveUserSession(adminUser);
+            resolve(adminUser);
+            return;
           } else {
-            // Normal User
-            mockUser = {
-              id: '1',
-              name: 'Nguyễn Văn A',
-              email: identifier.includes('@') ? identifier : `${identifier}@example.com`,
-              username: identifier.includes('@') ? identifier.split('@')[0] : identifier,
-              role: 'user',
-              rank: 'Thành viên Bạc', // Ranking for normal users
-              phone: '0912345678',
-              address: '123 Đường ABC, Quận 1, TP.HCM',
-              dob: '1995-01-01',
-              gender: 'Nam',
-              avatar: 'https://images.unsplash.com/photo-1599566150163-29194dcaad36?ixlib=rb-4.0.3&auto=format&fit=facearea&facepad=2&w=200&h=200&q=80'
-            };
+            reject(new Error('Mật khẩu không chính xác (Thử: 123456)'));
+            return;
           }
-
-          setUser(mockUser);
-          localStorage.setItem('user', JSON.stringify(mockUser));
-          resolve(mockUser);
-        } else {
-          reject(new Error('Tên đăng nhập/Email và mật khẩu không được để trống'));
         }
-      }, 1000);
-    });
-  };
 
-  const loginWithFacebook = async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockUser = {
-          id: 'fb_123',
-          name: 'Facebook User',
-          email: 'fbuser@example.com',
-          username: 'fbuser',
-          rank: 'Thành viên Mới',
-          avatar: 'https://via.placeholder.com/150'
-        };
-        setUser(mockUser);
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        resolve(mockUser);
-      }, 1000);
-    });
-  };
-
-  const loginWithGoogle = async () => {
-    return new Promise((resolve) => {
-      setTimeout(() => {
-        const mockUser = {
-          id: 'gg_123',
-          name: 'Google User',
-          email: 'googleuser@example.com',
-          username: 'googleuser',
-          rank: 'Thành viên Mới',
-          avatar: 'https://via.placeholder.com/150'
-        };
-        setUser(mockUser);
-        localStorage.setItem('user', JSON.stringify(mockUser));
-        resolve(mockUser);
-      }, 1000);
-    });
-  };
-
-  const register = async (name, email, username, password, phone) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (email && password && name && username) {
-          const newUser = {
-            id: 'new_1',
-            name: name,
-            email: email,
-            username: username,
-            phone: phone,
-            rank: 'Thành viên Mới',
-            avatar: 'https://via.placeholder.com/150'
-          };
-          // Auto login after register
-          setUser(newUser);
-          localStorage.setItem('user', JSON.stringify(newUser));
-          resolve(newUser);
-        } else {
-          reject(new Error('Vui lòng điền đầy đủ thông tin'));
+        // SIMULATE HOST LOGIN
+        if (identifier === 'host' || identifier === 'host@booking.com') {
+          if (password === '123456') {
+            const hostUser = {
+              id: 'd6a4dd59-3fc2-4189-a3bc-222b21ccfd03', // From seed
+              email: 'host@booking.com',
+              first_name: 'Chu',
+              last_name: 'Nha',
+              role: 'host',
+              role_id: 4,
+              avatar_url: 'https://ui-avatars.com/api/?name=Chu+Nha&background=random'
+            };
+            saveUserSession(hostUser);
+            resolve(hostUser);
+            return;
+          }
         }
-      }, 1000);
+
+        // SIMULATE REGULAR USER LOGIN
+        const regularUser = {
+          id: '3af419cf-6323-4110-96c6-6923ce5a2b37', // From seed
+          email: identifier,
+          first_name: 'Khach',
+          last_name: 'Hang',
+          role: 'guest',
+          role_id: 5,
+          avatar_url: 'https://ui-avatars.com/api/?name=Khach+Hang'
+        };
+        saveUserSession(regularUser);
+        resolve(regularUser);
+
+      }, 800);
     });
+  };
+
+  const saveUserSession = (userData) => {
+    setUser(userData);
+    localStorage.setItem('user', JSON.stringify(userData));
+    // In real app, we would also save the JWT token here
   };
 
   const logout = () => {
     setUser(null);
     localStorage.removeItem('user');
+    window.location.href = '/login';
   };
 
-  const updateUser = (data) => {
-    const updatedUser = { ...user, ...data };
-    setUser(updatedUser);
-    localStorage.setItem('user', JSON.stringify(updatedUser));
+  const register = async (userData) => {
+    // Eliminate mock register logic for now, standard register flow
+    return new Promise(resolve => {
+      setTimeout(() => {
+        const newUser = {
+          ...userData,
+          id: 'new-user-id',
+          role: 'guest',
+          role_id: 5,
+          avatar_url: `https://ui-avatars.com/api/?name=${userData.firstName}+${userData.lastName}`
+        };
+        saveUserSession(newUser);
+        resolve(newUser);
+      }, 1000);
+    });
   };
+
+  // --- Helper to check permissions ---
+  const isAdmin = () => user?.role === 'super_admin' || user?.role_id === 1;
+  const isHost = () => user?.role === 'host' || user?.role === 'hotel_manager' || user?.role_id === 4;
 
   const value = {
     user,
     login,
-    loginWithFacebook,
-    loginWithGoogle,
-    register,
     logout,
-    updateUser,
-    loading
+    register,
+    loading,
+    isAdmin,
+    isHost
   };
 
   return (

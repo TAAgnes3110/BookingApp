@@ -1,6 +1,7 @@
 const { Sequelize } = require('sequelize');
 const config = require('./config');
 const logger = require('./logger');
+const { initModels } = require('../models');
 
 let sequelize = null;
 
@@ -40,6 +41,15 @@ const connectDatabase = async () => {
 
     await sequelize.authenticate();
     logger.info('✅ PostgreSQL connected successfully');
+
+    // Initialize models after connection
+    initModels(sequelize);
+
+    // Sync database (optional, be careful in production)
+    if (config.env === 'development') {
+        // await sequelize.sync({ alter: true });
+        // logger.info('Database synced');
+    }
   } catch (error) {
     logger.error('❌ PostgreSQL connection error:', error);
     throw new Error(`Database connection failed: ${error.message}`);

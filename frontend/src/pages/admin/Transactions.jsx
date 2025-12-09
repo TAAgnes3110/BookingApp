@@ -76,7 +76,7 @@ const Transactions = () => {
               placeholder="Mã giao dịch, user..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+              className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full text-gray-900"
             />
           </div>
           <div className="flex space-x-2">

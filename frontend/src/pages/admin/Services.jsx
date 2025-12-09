@@ -1,6 +1,105 @@
 import React, { useState } from 'react';
-import { Search, Plus, Edit2, Trash2, MapPin, Image as ImageIcon } from 'lucide-react';
+import { Search, Plus, Edit2, Trash2, MapPin, Image as ImageIcon, BedDouble } from 'lucide-react';
 import Modal from '../../components/common/Modal';
+
+const RoomManagerModal = ({ service, isOpen, onClose }) => {
+  const [rooms, setRooms] = useState([
+    { id: 1, name: 'Deluxe Ocean View', type: 'Double', price: '1,500,000', status: 'Available' },
+    { id: 2, name: 'Standard Garden', type: 'Single', price: '800,000', status: 'Maintenance' },
+    { id: 3, name: 'Family Suite', type: 'Suite', price: '3,200,000', status: 'Booked' },
+  ]);
+
+  const [newRoom, setNewRoom] = useState({ name: '', type: 'Double', price: '', status: 'Available' });
+
+  const handleAddRoom = (e) => {
+    e.preventDefault();
+    setRooms([...rooms, { id: Date.now(), ...newRoom }]);
+    setNewRoom({ name: '', type: 'Double', price: '', status: 'Available' });
+  };
+
+  const toggleStatus = (id) => {
+    setRooms(rooms.map(r => {
+      if (r.id === id) {
+        return { ...r, status: r.status === 'Available' ? 'Maintenance' : 'Available' };
+      }
+      return r;
+    }));
+  };
+
+  if (!service) return null;
+
+  return (
+    <Modal isOpen={isOpen} onClose={onClose} title={`Quản lý phòng - ${service.name}`}>
+      <div className="space-y-6">
+        <div className="grid grid-cols-3 gap-4 mb-4">
+          <div className="p-3 bg-green-50 rounded-lg border border-green-100 text-center">
+            <span className="block text-xl font-bold text-green-600">{rooms.filter(r => r.status === 'Available').length}</span>
+            <span className="text-xs text-green-700">Trống</span>
+          </div>
+          <div className="p-3 bg-red-50 rounded-lg border border-red-100 text-center">
+            <span className="block text-xl font-bold text-red-600">{rooms.filter(r => r.status === 'Booked').length}</span>
+            <span className="text-xs text-red-700">Đã đặt</span>
+          </div>
+          <div className="p-3 bg-gray-50 rounded-lg border border-gray-100 text-center">
+            <span className="block text-xl font-bold text-gray-600">{rooms.filter(r => r.status === 'Maintenance').length}</span>
+            <span className="text-xs text-gray-700">Bảo trì</span>
+          </div>
+        </div>
+
+        <form onSubmit={handleAddRoom} className="flex gap-2 items-end bg-gray-50 p-3 rounded-lg border border-gray-200">
+          <div className="flex-1">
+            <label className="text-xs font-bold text-gray-500">Tên phòng</label>
+            <input required className="w-full text-sm border rounded p-1 text-gray-900" value={newRoom.name} onChange={e => setNewRoom({ ...newRoom, name: e.target.value })} placeholder="VD: P101" />
+          </div>
+          <div className="w-24">
+            <label className="text-xs font-bold text-gray-500">Loại</label>
+            <select className="w-full text-sm border rounded p-1 text-gray-900" value={newRoom.type} onChange={e => setNewRoom({ ...newRoom, type: e.target.value })}>
+              <option>Single</option><option>Double</option><option>Suite</option>
+            </select>
+          </div>
+          <div className="w-28">
+            <label className="text-xs font-bold text-gray-500">Giá</label>
+            <input required className="w-full text-sm border rounded p-1 text-gray-900" value={newRoom.price} onChange={e => setNewRoom({ ...newRoom, price: e.target.value })} />
+          </div>
+          <button type="submit" className="bg-blue-600 text-white p-1.5 rounded hover:bg-blue-700"><Plus size={18} /></button>
+        </form>
+
+        <div className="space-y-2 max-h-[300px] overflow-y-auto pr-1">
+          {rooms.map(room => (
+            <div key={room.id} className="flex items-center justify-between p-3 border rounded-lg bg-white hover:shadow-sm transition-shadow">
+              <div>
+                <div className="font-bold text-gray-800 flex items-center gap-2">
+                  {room.name}
+                  <span className={`text-[10px] px-2 py-0.5 rounded-full ${room.status === 'Available' ? 'bg-green-100 text-green-700' :
+                    room.status === 'Booked' ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'
+                    }`}>
+                    {room.status === 'Booked' ? 'Đã có khách' : room.status === 'Available' ? 'Sẵn sàng' : 'Bảo trì'}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500">{room.type} • {room.price}₫ / đêm</div>
+              </div>
+
+              <div className="flex items-center gap-2">
+                {room.status !== 'Booked' && (
+                  <button
+                    onClick={() => toggleStatus(room.id)}
+                    className={`text-sm px-3 py-1 rounded border transition-colors ${room.status === 'Available'
+                      ? 'border-gray-300 text-gray-500 hover:bg-gray-50'
+                      : 'border-green-300 text-green-600 hover:bg-green-50'
+                      }`}
+                  >
+                    {room.status === 'Available' ? 'Khóa' : 'Mở'}
+                  </button>
+                )}
+                <button className="text-gray-400 hover:text-red-500"><Trash2 size={16} /></button>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    </Modal>
+  );
+};
 
 const Services = () => {
   // TODO: Backend Integration - Fetch services from API
@@ -23,6 +122,7 @@ const Services = () => {
   // Modal & Form State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingService, setEditingService] = useState(null);
+  const [roomManagerService, setRoomManagerService] = useState(null);
   const [formData, setFormData] = useState({
     name: '',
     category: 'Hotel',
@@ -117,13 +217,13 @@ const Services = () => {
               placeholder="Tìm kiếm dịch vụ, địa điểm..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full"
+              className="pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 w-full text-gray-900"
             />
           </div>
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="border-gray-200 rounded-lg text-sm p-2 bg-white border focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="border-gray-200 rounded-lg text-sm p-2 bg-white border focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900"
           >
             <option value="All">Tất cả danh mục</option>
             <option value="Hotel">Hotel</option>
@@ -133,7 +233,7 @@ const Services = () => {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="border-gray-200 rounded-lg text-sm p-2 bg-white border focus:ring-2 focus:ring-blue-500 focus:outline-none"
+            className="border-gray-200 rounded-lg text-sm p-2 bg-white border focus:ring-2 focus:ring-blue-500 focus:outline-none text-gray-900"
           >
             <option value="All">Tất cả trạng thái</option>
             <option value="Available">Available</option>
@@ -171,7 +271,16 @@ const Services = () => {
 
                 <div className="mt-auto flex items-center justify-between">
                   <span className="font-bold text-blue-600">{service.price}</span>
-                  <div className="flex space-x-2">
+                  <div className="flex space-x-1 items-center">
+                    {service.category === 'Hotel' && (
+                      <button
+                        onClick={() => setRoomManagerService(service)}
+                        className="px-2 py-1.5 text-green-700 bg-green-50 hover:bg-green-100 border border-green-200 rounded-lg transition-colors flex items-center gap-1 mr-1"
+                        title="Quản lý phòng"
+                      >
+                        <BedDouble size={14} /> <span className="text-xs font-semibold">Phòng</span>
+                      </button>
+                    )}
                     <button
                       onClick={() => handleOpenModal(service)}
                       className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
@@ -283,6 +392,12 @@ const Services = () => {
           </div>
         </form>
       </Modal>
+
+      <RoomManagerModal
+        service={roomManagerService}
+        isOpen={!!roomManagerService}
+        onClose={() => setRoomManagerService(null)}
+      />
     </div>
   );
 };
