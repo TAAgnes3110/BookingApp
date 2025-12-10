@@ -2,6 +2,7 @@
   "dependencies": {
     "framer-motion": "^12.23.25",
     "lucide-react": "^0.556.0",
-    "react-router-dom": "^7.10.1"
+    "react-router-dom": "^7.10.1",
+    "sequelize": "^6.37.7"
   }
 }

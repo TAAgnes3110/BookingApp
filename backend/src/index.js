@@ -1,41 +1,37 @@
 const http = require('http');
-const app = require('../src/app');
-const config = require('../src/config/config');
-const logger = require('../src/config/logger');
-const { connectDatabase } = require('../src/config/database');
+const app = require('./app');
+const config = require('./config/config');
+const logger = require('./config/logger');
+const { connectDatabase } = require('./config/database');
 
 const port = config.port || 3000;
-const host = '0.0.0.0';
+const host = config.host || '0.0.0.0';
 
 let server = null;
 
 const startServer = async () => {
   try {
-    // Connect to database
     await connectDatabase();
     logger.info('✅ Database connected');
-
-    // Create HTTP server
     server = http.createServer(app);
-
     server.listen(port, host, () => {
       const address = server.address();
+      const protocol = 'http';
       let actualHost = address.address;
-      if (address.address === '::' || address.address === '0.0.0.0') {
-        actualHost = '0.0.0.0';
-      } else if (address.address === '127.0.0.1' || address.address === '::1') {
-        actualHost = '127.0.0.1';
-        logger.error(
-          `❌ ERROR: Server bound to ${address.address} instead of 0.0.0.0! This will cause connectivity issues.`
-        );
+
+      if (
+        actualHost === '::' ||
+        actualHost === '0.0.0.0' ||
+        actualHost === '::1' ||
+        actualHost === '127.0.0.1'
+      ) {
+        actualHost = 'localhost';
       }
 
-      logger.info(`🚀 Server running at http://${actualHost}:${address.port}`);
+      logger.info(`🚀 Server running at ${protocol}://${actualHost}:${port}`);
       logger.info(`📦 Environment: ${config.env}`);
       logger.info(`⏰ Started at: ${new Date().toISOString()}`);
     });
-
-    // Handle server errors
     server.on('error', (error) => {
       if (error.code === 'EADDRINUSE') {
         logger.error(`❌ Port ${port} is already in use. Please choose a different port.`);
@@ -50,7 +46,6 @@ const startServer = async () => {
   }
 };
 
-// GRACEFUL SHUTDOWN
 const gracefulShutdown = (signal) => {
   logger.info(`📴 Received signal ${signal}. Shutting down server...`);
 
@@ -64,8 +59,6 @@ const gracefulShutdown = (signal) => {
         process.exit(0);
       }
     });
-
-    // Force close after 10 seconds
     setTimeout(() => {
       logger.error('Timeout! Force closing server...');
       process.exit(1);
@@ -75,7 +68,6 @@ const gracefulShutdown = (signal) => {
   }
 };
 
-// ERROR HANDLERS
 const handleUnexpectedError = (error, source) => {
   logger.error(`❌ ${source || 'Unexpected error'}:`, {
     message: error.message,
@@ -84,13 +76,10 @@ const handleUnexpectedError = (error, source) => {
     ...(error.details && { details: error.details })
   });
 
-  // Wait for log to be written
   setTimeout(() => {
     gracefulShutdown(source || 'UNCAUGHT_EXCEPTION');
   }, 2000);
 };
-
-// PROCESS EVENT LISTENERS
 process.on('uncaughtException', (error) => handleUnexpectedError(error, 'UNCAUGHT_EXCEPTION'));
 process.on('unhandledRejection', (error) => handleUnexpectedError(error, 'UNHANDLED_REJECTION'));
 process.on('SIGTERM', () => gracefulShutdown('SIGTERM'));

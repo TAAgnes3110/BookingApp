@@ -1,7 +1,6 @@
 const roles = {
   user: [],
-  admin: ['getUsers', 'manageUsers'],
+  admin: ['getUsers', 'manageUsers']
 };
 
 module.exports = roles;
-

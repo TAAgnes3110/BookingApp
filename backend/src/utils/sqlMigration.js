@@ -1,34 +1,31 @@
-/**
- * PostgreSQL Migration helper
- * Run this script to create tables for PostgreSQL
- */
-const { sequelize } = require('../config/database');
+const fs = require('fs');
+const path = require('path');
+const { getConnection } = require('../config/database');
+const logger = require('../config/logger');
 
 const runMigrations = async () => {
-  try {
-    // Import models to register them
-    require('../models/user.model')(sequelize);
+  const sequelize = getConnection();
+  if (!sequelize) {
+    throw new Error('Database connection not established');
+  }
 
-    // Sync database (create tables)
-    await sequelize.sync({ force: false, alter: true });
-    console.log('Database migrations completed successfully');
+  try {
+    const sqlPath = path.join(__dirname, '../../database/omega_schema.sql');
+    if (!fs.existsSync(sqlPath)) {
+      throw new Error(`Migration file not found at ${sqlPath}`);
+    }
+
+    const sql = fs.readFileSync(sqlPath, 'utf8');
+
+    logger.info('Executing database schema migration...');
+    await sequelize.query(sql);
+    logger.info('✅ Database migration completed successfully.');
   } catch (error) {
-    console.error('Migration error:', error);
+    logger.error('❌ Migration error:', error);
     throw error;
   }
 };
 
-if (require.main === module) {
-  runMigrations()
-    .then(() => {
-      console.log('Migrations completed');
-      process.exit(0);
-    })
-    .catch((error) => {
-      console.error('Migration failed:', error);
-      process.exit(1);
-    });
-}
-
-module.exports = { runMigrations };
-
+module.exports = {
+  runMigrations
+};

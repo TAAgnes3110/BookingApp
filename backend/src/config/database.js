@@ -11,44 +11,46 @@ let sequelize = null;
 const connectDatabase = async () => {
   try {
     const { postgres } = config;
-    sequelize = new Sequelize(
-      postgres.database,
-      postgres.username,
-      postgres.password,
-      {
-        host: postgres.host,
-        port: postgres.port,
-        dialect: 'postgres',
-        logging: config.env === 'development' ? console.log : false,
-        pool: {
-          max: 5,
-          min: 0,
-          acquire: 30000,
-          idle: 10000,
-        },
-        define: {
-          timestamps: true,
-          underscored: true,
-        },
-        dialectOptions: config.env === 'production' && postgres.ssl === 'true' ? {
-          ssl: {
-            require: true,
-            rejectUnauthorized: false
-          }
-        } : {}
-      }
-    );
+    sequelize = new Sequelize(postgres.database, postgres.username, postgres.password, {
+      host: postgres.host,
+      port: postgres.port,
+      dialect: 'postgres',
+      logging: false,
+      pool: {
+        max: 5,
+        min: 0,
+        acquire: 30000,
+        idle: 10000
+      },
+      define: {
+        timestamps: true,
+        underscored: true
+      },
+      dialectOptions:
+        config.env === 'production' && postgres.ssl === 'true'
+          ? {
+              ssl: {
+                require: true,
+                rejectUnauthorized: false
+              }
+            }
+          : {}
+    });
 
     await sequelize.authenticate();
     logger.info('✅ PostgreSQL connected successfully');
 
-    // Initialize models after connection
     initModels(sequelize);
 
-    // Sync database (optional, be careful in production)
     if (config.env === 'development') {
-        // await sequelize.sync({ alter: true });
-        // logger.info('Database synced');
+      try {
+        await sequelize.sync({ alter: true });
+      } catch (err) {
+        logger.warn(
+          '⚠️ Sync failed (alter). This might be due to existing data conflict. Ignoring for now if seeding will fix it.',
+          err.message
+        );
+      }
     }
   } catch (error) {
     logger.error('❌ PostgreSQL connection error:', error);
@@ -56,16 +58,8 @@ const connectDatabase = async () => {
   }
 };
 
-/**
- * Get database connection
- */
-const getConnection = () => {
-  return sequelize;
-};
+const getConnection = () => sequelize;
 
-/**
- * Close database connection
- */
 const closeDatabase = async () => {
   try {
     if (sequelize) {
@@ -82,6 +76,5 @@ module.exports = {
   connectDatabase,
   getConnection,
   closeDatabase,
-  sequelize,
+  sequelize
 };
-

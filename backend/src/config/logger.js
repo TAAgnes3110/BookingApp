@@ -9,11 +9,11 @@ const logger = winston.createLogger({
     winston.format.splat(),
     winston.format.json()
   ),
-  defaultMeta: { service: 'taagnes-backend' },
+
   transports: [
     new winston.transports.File({ filename: 'logs/error.log', level: 'error' }),
-    new winston.transports.File({ filename: 'logs/combined.log' }),
-  ],
+    new winston.transports.File({ filename: 'logs/combined.log' })
+  ]
 });
 
 if (config.env !== 'production') {
@@ -21,21 +21,21 @@ if (config.env !== 'production') {
     new winston.transports.Console({
       format: winston.format.combine(
         winston.format.colorize(),
-        winston.format.printf(({ timestamp, level, message, ...meta }) => {
-          return `${timestamp} [${level}]: ${message} ${
-            Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''
-          }`;
-        })
-      ),
+        winston.format.printf(
+          ({ timestamp, level, message, ...meta }) =>
+            `${timestamp} [${level}]: ${message} ${
+              Object.keys(meta).length ? JSON.stringify(meta, null, 2) : ''
+            }`
+        )
+      )
     })
   );
 } else {
   logger.add(
     new winston.transports.Console({
-      format: winston.format.combine(winston.format.json()),
+      format: winston.format.combine(winston.format.json())
     })
   );
 }
 
 module.exports = logger;
-

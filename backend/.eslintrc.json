@@ -5,15 +5,20 @@
     "jest": true
   },
   "extends": ["airbnb-base", "prettier"],
+  "plugins": ["jest"],
   "parserOptions": {
     "ecmaVersion": 2021,
-    "sourceType": "module"
+    "sourceType": "script"
   },
   "rules": {
     "no-console": "off",
-    "import/no-extraneous-dependencies": ["error", { "devDependencies": true }],
-    "no-unused-vars": ["error", { "argsIgnorePattern": "next" }]
-  },
-  "plugins": ["jest"]
+    "no-underscore-dangle": "off",
+    "no-unused-vars": ["error", { "argsIgnorePattern": "next" }],
+    "import/no-extraneous-dependencies": [
+      "error",
+      {
+        "devDependencies": true
+      }
+    ]
+  }
 }
-

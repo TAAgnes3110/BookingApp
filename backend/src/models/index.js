@@ -1,11 +1,14 @@
-const models = {};
+const { Sequelize } = require('sequelize');
+const userModelDef = require('./userModel');
+const roleModelDef = require('./roleModel');
 
 const initModels = (sequelize) => {
-  models.User = require('./user.model')(sequelize);
-  // Add other models here
+  const models = {
+    User: userModelDef(sequelize, Sequelize.DataTypes),
+    Role: roleModelDef(sequelize, Sequelize.DataTypes)
+  };
 
-  // Setup associations if any
-  Object.keys(models).forEach(modelName => {
+  Object.keys(models).forEach((modelName) => {
     if (models[modelName].associate) {
       models[modelName].associate(models);
     }
@@ -14,5 +17,4 @@ const initModels = (sequelize) => {
   return models;
 };
 
-module.exports = { initModels, models };
-
+module.exports = { initModels };

@@ -1,123 +1,137 @@
 const express = require('express');
 const cors = require('cors');
-const helmet = require('helmet');
-const xss = require('xss-clean');
-const compression = require('compression');
+const passport = require('passport');
 const rateLimit = require('express-rate-limit');
-const morgan = require('morgan');
-const session = require('express-session');
+const compression = require('compression');
+const helmet = require('helmet');
 const httpStatus = require('http-status');
+const xss = require('xss-clean');
 const config = require('./config/config');
 const logger = require('./config/logger');
-const { errorConverter, errorHandler } = require('./middlewares/error');
-const requestId = require('./middlewares/requestId');
-const passport = require('./config/passport');
+const { successHandler, errorHandler } = require('./config/morgan');
 const routes = require('./routes/v1');
-const { getConnection } = require('./config/database');
 
 const app = express();
 
-// Request ID middleware (must be first)
-app.use(requestId);
-
-// Security middleware
+// SECURITY MIDDLEWARE
 app.use(helmet());
+app.use(compression());
 
-// Parse json request body
-app.use(express.json({ limit: '10mb' }));
+// CORS CONFIGURATION
+app.use(cors(config.cors));
+app.options('*', cors());
 
-// Parse urlencoded request body
-app.use(express.urlencoded({ extended: true }));
-
-// Session for OAuth (optional, có thể dùng stateless)
+// BODY PARSING
 app.use(
-  session({
-    secret: config.session.secret,
-    resave: false,
-    saveUninitialized: false,
-    cookie: {
-      secure: config.env === 'production',
-      httpOnly: true,
-      maxAge: 24 * 60 * 60 * 1000, // 24 hours
-    },
+  express.json({
+    limit: '10mb',
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    }
   })
 );
 
-// Initialize Passport
-app.use(passport.initialize());
-app.use(passport.session());
+// Handle JSON parsing for requests without proper Content-Type
+app.use((req, res, next) => {
+  // Handle text/plain content type that might contain JSON
+  if (req.is('text/plain') && req.body && typeof req.body === 'string') {
+    try {
+      req.body = JSON.parse(req.body);
+    } catch (e) {
+      // If parsing fails, continue with original body
+    }
+  }
+
+  // Handle requests with no content type that might contain JSON
+  if (!req.get('Content-Type') && req.body && typeof req.body === 'string') {
+    try {
+      req.body = JSON.parse(req.body);
+    } catch (e) {
+      // If parsing fails, continue with original body
+    }
+  }
+
+  next();
+});
+
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit: '10mb'
+  })
+);
 
 // Sanitize request data
 app.use(xss());
 
-// Gzip compression
-app.use(compression());
+// REQUEST LOGGING
+if (config.env !== 'test') {
+  app.use(successHandler);
+  app.use(errorHandler);
+}
 
-// Enable CORS
-app.use(cors(config.cors));
+// AUTHENTICATION
+app.use(passport.initialize());
+// passport.use('jwt', jwtStrategy); // Enable if JWT strategy is defined in config/passport
 
-// Rate limiting
+// RATE LIMITING
 const limiter = rateLimit({
-  windowMs: 15 * 60 * 1000, // 15 minutes
-  max: 100, // limit each IP to 100 requests per windowMs
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: (req) => req.path === '/health' || req.path === '/v1/health'
 });
 app.use('/v1', limiter);
 
-// HTTP request logger
-if (config.env === 'development') {
-  app.use(morgan('dev'));
-} else {
-  app.use(morgan('combined', { stream: { write: (message) => logger.info(message.trim()) } }));
-}
-
-// Health check
-app.get('/health', async (req, res) => {
-  try {
-    const connection = getConnection();
-    let dbStatus = 'disconnected';
-
-    try {
-      await connection.authenticate();
-      dbStatus = 'connected';
-    } catch (error) {
-      dbStatus = 'disconnected';
-    }
-
-    const healthStatus = dbStatus === 'connected' ? 'healthy' : 'unhealthy';
-
-    res.status(healthStatus === 'healthy' ? httpStatus.OK : httpStatus.SERVICE_UNAVAILABLE).json({
-      status: healthStatus,
-      timestamp: new Date().toISOString(),
-      database: {
-        type: 'postgresql',
-        status: dbStatus,
-      },
-    });
-  } catch (error) {
-    res.status(httpStatus.SERVICE_UNAVAILABLE).json({
-      status: 'unhealthy',
-      timestamp: new Date().toISOString(),
-      error: error.message,
-    });
-  }
-});
-
-// API routes
-app.use('/v1', routes);
-
-// Send back a 404 error for any unknown api request
-app.use((req, res, next) => {
-  res.status(httpStatus.NOT_FOUND).json({
-    code: httpStatus.NOT_FOUND,
-    message: 'Not found',
+// ROOT ENDPOINT
+app.get('/', (req, res) => {
+  res.status(200).json({
+    success: true,
+    message: 'Booking App API',
+    version: '1.0.0',
+    status: 'running',
+    timestamp: new Date().toISOString()
   });
 });
 
-// Convert error to ApiError, if needed
-app.use(errorConverter);
+// HEALTH CHECK
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    env: config.env
+  });
+});
 
-// Handle error
-app.use(errorHandler);
+// API ROUTES
+app.use('/v1', routes);
+
+// 404 HANDLER
+app.use((req, res, next) => {
+  res.status(httpStatus.NOT_FOUND).json({
+    code: httpStatus.NOT_FOUND,
+    message: 'Not found'
+  });
+});
+
+// ERROR HANDLER
+app.use((error, req, res, next) => {
+  logger.error('Unhandled error:', error);
+
+  let statusCode = error.status || error.statusCode || httpStatus.INTERNAL_SERVER_ERROR;
+  if (!statusCode || typeof statusCode !== 'number') {
+    statusCode = 500;
+  }
+
+  const message = error.message || httpStatus[statusCode];
+
+  res.status(statusCode).json({
+    success: false,
+    code: statusCode,
+    message,
+    stack: config.env === 'development' ? error.stack : undefined
+  });
+});
 
 module.exports = app;
-

@@ -13,6 +13,7 @@ DROP TABLE IF EXISTS "users" CASCADE;
 CREATE TABLE "users" (
     "id" UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     "email" VARCHAR(255) UNIQUE NOT NULL,
+    "username" VARCHAR(50) UNIQUE,
     "password_hash" VARCHAR(255),
     "first_name" VARCHAR(100),
     "last_name" VARCHAR(100),
