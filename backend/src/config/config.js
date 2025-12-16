@@ -31,7 +31,6 @@ try {
         origin: process.env.CORS_ORIGIN || 'http://localhost:3000'
       },
       logLevel: process.env.LOG_LEVEL || 'info',
-      // OAuth Config
       google: {
         clientId: process.env.GOOGLE_CLIENT_ID,
         clientSecret: process.env.GOOGLE_CLIENT_SECRET,

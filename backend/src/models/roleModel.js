@@ -18,14 +18,12 @@ const Roles = (sequelize) => {
         type: DataTypes.TEXT
       },
       permissions: {
-        type: DataTypes.JSON
+        type: DataTypes.JSONB
       }
     },
     {
       tableName: 'roles',
-      timestamps: true,
-      createdAt: 'created_at',
-      updatedAt: 'updated_at'
+      timestamps: false
     }
   );
 
