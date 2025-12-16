@@ -2,15 +2,17 @@ const passport = require('passport');
 const GoogleStrategy = require('passport-google-oauth20').Strategy;
 const FacebookStrategy = require('passport-facebook').Strategy;
 const GitHubStrategy = require('passport-github2').Strategy;
+// eslint-disable-next-line import/no-extraneous-dependencies
+const { Strategy: JwtStrategy, ExtractJwt } = require('passport-jwt');
 const config = require('./config');
 const { authService } = require('../services/index');
 
-// Serialize user for session
+// Serialize người dùng cho session
 passport.serializeUser((user, done) => {
   done(null, user.id);
 });
 
-// Deserialize user from session
+// Deserialize người dùng từ session
 passport.deserializeUser(async (id, done) => {
   try {
     const user = await authService.getUserById(id);
@@ -20,7 +22,7 @@ passport.deserializeUser(async (id, done) => {
   }
 });
 
-// Google Strategy
+// Google
 if (config.google.clientId && config.google.clientSecret) {
   passport.use(
     new GoogleStrategy(
@@ -41,7 +43,7 @@ if (config.google.clientId && config.google.clientSecret) {
   );
 }
 
-// Facebook Strategy
+// Facebook
 if (config.facebook.appId && config.facebook.appSecret) {
   passport.use(
     new FacebookStrategy(
@@ -63,7 +65,7 @@ if (config.facebook.appId && config.facebook.appSecret) {
   );
 }
 
-// GitHub Strategy
+// GitHub
 if (config.github.clientId && config.github.clientSecret) {
   passport.use(
     new GitHubStrategy(
@@ -84,5 +86,28 @@ if (config.github.clientId && config.github.clientSecret) {
     )
   );
 }
+
+// JWT
+const jwtOptions = {
+  secretOrKey: config.jwt.secret,
+  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken()
+};
+
+passport.use(
+  new JwtStrategy(jwtOptions, async (payload, done) => {
+    try {
+      if (payload.type !== 'access') {
+        return done(null, false, { message: 'Invalid token type' });
+      }
+      const user = await authService.getUserById(payload.sub);
+      if (!user) {
+        return done(null, false);
+      }
+      return done(null, user);
+    } catch (error) {
+      return done(error, false);
+    }
+  })
+);
 
 module.exports = passport;

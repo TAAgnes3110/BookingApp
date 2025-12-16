@@ -1,27 +1,28 @@
 const express = require('express');
 const cors = require('cors');
-const passport = require('passport');
 const rateLimit = require('express-rate-limit');
 const compression = require('compression');
 const helmet = require('helmet');
 const httpStatus = require('http-status');
 const xss = require('xss-clean');
+const passport = require('./config/passport');
+
 const config = require('./config/config');
 const logger = require('./config/logger');
 const { successHandler, errorHandler } = require('./config/morgan');
-const routes = require('./routes/v1');
+const { userRouter } = require('./routes/v1/index');
 
 const app = express();
 
-// SECURITY MIDDLEWARE
+// Middleware bảo mật
 app.use(helmet());
 app.use(compression());
 
-// CORS CONFIGURATION
+// Cấu hình CORS
 app.use(cors(config.cors));
 app.options('*', cors());
 
-// BODY PARSING
+// Xử lý Body Parsing
 app.use(
   express.json({
     limit: '10mb',
@@ -31,23 +32,23 @@ app.use(
   })
 );
 
-// Handle JSON parsing for requests without proper Content-Type
+// Xử lý phân tích cú pháp JSON cho các request không có Content-Type phù hợp
 app.use((req, res, next) => {
-  // Handle text/plain content type that might contain JSON
+  // Xử lý content type text/plain có thể chứa JSON
   if (req.is('text/plain') && req.body && typeof req.body === 'string') {
     try {
       req.body = JSON.parse(req.body);
     } catch (e) {
-      // If parsing fails, continue with original body
+      // Nếu phân tích thất bại, tiếp tục với body gốc
     }
   }
 
-  // Handle requests with no content type that might contain JSON
+  // Xử lý request không có content type có thể chứa JSON
   if (!req.get('Content-Type') && req.body && typeof req.body === 'string') {
     try {
       req.body = JSON.parse(req.body);
     } catch (e) {
-      // If parsing fails, continue with original body
+      // Nếu phân tích thất bại, tiếp tục với body gốc
     }
   }
 
@@ -61,20 +62,20 @@ app.use(
   })
 );
 
-// Sanitize request data
+// Làm sạch dữ liệu request (xss)
 app.use(xss());
 
-// REQUEST LOGGING
+// Logging request
 if (config.env !== 'test') {
   app.use(successHandler);
   app.use(errorHandler);
 }
 
-// AUTHENTICATION
+// Xác thực (Authentication)
 app.use(passport.initialize());
 // passport.use('jwt', jwtStrategy); // Enable if JWT strategy is defined in config/passport
 
-// RATE LIMITING
+// Giới hạn tốc độ request (Rate Limiting)
 const limiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
@@ -84,7 +85,7 @@ const limiter = rateLimit({
 });
 app.use('/v1', limiter);
 
-// ROOT ENDPOINT
+// Endpoint gốc
 app.get('/', (req, res) => {
   res.status(200).json({
     success: true,
@@ -95,7 +96,7 @@ app.get('/', (req, res) => {
   });
 });
 
-// HEALTH CHECK
+// Kiểm tra trạng thái hệ thống (Health Check)
 app.get('/health', (req, res) => {
   res.status(200).json({
     status: 'healthy',
@@ -104,10 +105,10 @@ app.get('/health', (req, res) => {
   });
 });
 
-// API ROUTES
-app.use('/v1', routes);
+// Các Routes API
+app.use('/api/users', userRouter)
 
-// 404 HANDLER
+// Xử lý lỗi 404 (Not Found)
 app.use((req, res, next) => {
   res.status(httpStatus.NOT_FOUND).json({
     code: httpStatus.NOT_FOUND,
@@ -115,22 +116,22 @@ app.use((req, res, next) => {
   });
 });
 
-// ERROR HANDLER
+// Xử lý lỗi chung (Error Handler)
 app.use((error, req, res, next) => {
-  logger.error('Unhandled error:', error);
-
-  let statusCode = error.status || error.statusCode || httpStatus.INTERNAL_SERVER_ERROR;
-  if (!statusCode || typeof statusCode !== 'number') {
-    statusCode = 500;
-  }
-
+  const statusCode = error.status || error.statusCode || httpStatus.INTERNAL_SERVER_ERROR;
   const message = error.message || httpStatus[statusCode];
+
+  if (statusCode === httpStatus.INTERNAL_SERVER_ERROR) {
+    logger.error('Unhandled error:', error);
+  } else {
+    logger.warn(`Error ${statusCode}: ${message} - URL: ${req.originalUrl}`);
+  }
 
   res.status(statusCode).json({
     success: false,
     code: statusCode,
     message,
-    stack: config.env === 'development' ? error.stack : undefined
+    stack: config.env === 'development' && statusCode === httpStatus.INTERNAL_SERVER_ERROR ? error.stack : undefined
   });
 });
 
