@@ -50,8 +50,9 @@ const register = {
 
 const login = {
   body: Joi.object({
-    usernameOrEmail: Joi.string().required().messages({
-      'any.required': 'Username or email is required'
+    email: Joi.string().email().required().messages({
+      'string.email': 'Email is invalid',
+      'any.required': 'Email is required'
     }),
     password: Joi.string().required().messages({
       'any.required': 'Password is required'

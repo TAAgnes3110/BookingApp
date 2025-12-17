@@ -10,7 +10,7 @@ const passport = require('./config/passport');
 const config = require('./config/config');
 const logger = require('./config/logger');
 const { successHandler, errorHandler } = require('./config/morgan');
-const { userRouter } = require('./routes/v1/index');
+const { userRouter, authRouter } = require('./routes/v1/index');
 
 const app = express();
 
@@ -106,7 +106,8 @@ app.get('/health', (req, res) => {
 });
 
 // Các Routes API
-app.use('/api/users', userRouter)
+app.use('/api/users', userRouter);
+app.use('/api/auth', authRouter);
 
 // Xử lý lỗi 404 (Not Found)
 app.use((req, res, next) => {

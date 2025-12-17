@@ -58,7 +58,7 @@ const createUser = {
         'any.required': 'Phone number is required'
       }),
     avatar_url: Joi.string().allow(null, '').optional(),
-    role_id: Joi.number().integer().positive().optional(),
+    role_id: Joi.number().integer().positive().default(5),
     is_email_verified: Joi.boolean().optional().default(false),
     is_phone_verified: Joi.boolean().optional().default(false),
     status: Joi.string()
@@ -82,6 +82,11 @@ const createUser = {
   })
 };
 
+/**
+ * Get user by id
+ * @param {string} id - The id of the user
+ * @returns {Promise<User>}
+ */
 const getUserById = {
   params: Joi.object({
     id: Joi.string().uuid().required().messages({
@@ -91,6 +96,11 @@ const getUserById = {
   })
 };
 
+/**
+ * Get user by email
+ * @param {string} email - The email of the user
+ * @returns {Promise<User>}
+ */
 const getUserByEmail = {
   params: Joi.object({
     email: Joi.string().email().required().messages({
@@ -101,6 +111,11 @@ const getUserByEmail = {
   })
 };
 
+/**
+ * Get user by phone
+ * @param {string} phoneNumber - The phone number of the user
+ * @returns {Promise<User>}
+ */
 const getUserByPhone = {
   params: Joi.object({
     phoneNumber: Joi.string()
@@ -113,6 +128,25 @@ const getUserByPhone = {
   })
 };
 
+/**
+ * Get user by username
+ * @param {string} username - The username of the user
+ * @returns {Promise<User>}
+ */
+const getUserByUsername = {
+  params: Joi.object({
+    username: Joi.string().required().messages({
+      'any.required': 'Username is required'
+    })
+  })
+};
+
+/**
+ * Update user by id
+ * @param {string} id - The id of the user
+ * @param {Object} body - The body of the request
+ * @returns {Promise<User>}
+ */
 const updateUser = {
   params: Joi.object({
     id: Joi.string().uuid().required().messages({
@@ -148,6 +182,11 @@ const updateUser = {
   })
 };
 
+/**
+ * Delete user by id
+ * @param {string} id - The id of the user
+ * @returns {Promise<User>}
+ */
 const deleteUser = {
   params: Joi.object({
     id: Joi.string().uuid().required().messages({
@@ -157,6 +196,11 @@ const deleteUser = {
   })
 };
 
+/**
+ * Hard delete user by id
+ * @param {string} id - The id of the user
+ * @returns {Promise<User>}
+ */
 const hardDeleteUser = {
   params: Joi.object({
     id: Joi.string().uuid().required().messages({
@@ -166,6 +210,11 @@ const hardDeleteUser = {
   })
 };
 
+/**
+ * Restore user by id
+ * @param {string} id - The id of the user
+ * @returns {Promise<User>}
+ */
 const restoreUser = {
   params: Joi.object({
     id: Joi.string().uuid().required().messages({
@@ -175,6 +224,11 @@ const restoreUser = {
   })
 };
 
+/**
+ * Get deleted users
+ * @param {Object} query - The query parameters
+ * @returns {Promise<User>}
+ */
 const getDeletedUsers = {
   query: Joi.object({
     page: Joi.number().integer().min(1).default(1).messages({
@@ -203,6 +257,11 @@ const getDeletedUsers = {
   })
 };
 
+/**
+ * Get user stats
+ * @param {Object} query - The query parameters
+ * @returns {Promise<User>}
+ */
 const getUserStats = {
   query: Joi.object({
     period: Joi.string().valid('day', 'week', 'month', 'year', 'all').default('all').messages({
@@ -216,6 +275,7 @@ module.exports = {
   getUserById,
   getUserByEmail,
   getUserByPhone,
+  getUserByUsername,
   updateUser,
   deleteUser,
   hardDeleteUser,

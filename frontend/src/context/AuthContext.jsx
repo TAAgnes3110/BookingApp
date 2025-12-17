@@ -1,3 +1,4 @@
+/* eslint-disable react-refresh/only-export-components */
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext();
@@ -22,67 +23,28 @@ export const AuthProvider = ({ children }) => {
   // --- MOCK AUTH FUNCTIONS (To be replaced with Real API calls) ---
 
   const login = async (identifier, password) => {
-    return new Promise((resolve, reject) => {
-      setTimeout(() => {
-        if (!identifier || !password) {
-          reject(new Error('Vui lòng nhập đầy đủ email và mật khẩu.'));
-          return;
-        }
+    try {
+      const response = await fetch('http://localhost:3000/api/auth/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ email: identifier, password })
+      });
 
-        // SIMULATE ADMIN LOGIN
-        if (identifier === 'admin' || identifier === 'admin@booking.com') {
-          if (password === '123456') { // Matches seed data password
-            const adminUser = {
-              id: 'c5e109f5-82a8-4678-b6b8-1a4714e75699', // From seed
-              email: 'admin@booking.com',
-              first_name: 'Admin',
-              last_name: 'Super',
-              role: 'super_admin', // Important: Matches Role Name in DB
-              role_id: 1,
-              avatar_url: 'https://ui-avatars.com/api/?name=Admin+Super&background=0D8ABC&color=fff'
-            };
-            saveUserSession(adminUser);
-            resolve(adminUser);
-            return;
-          } else {
-            reject(new Error('Mật khẩu không chính xác (Thử: 123456)'));
-            return;
-          }
-        }
+      const data = await response.json();
 
-        // SIMULATE HOST LOGIN
-        if (identifier === 'host' || identifier === 'host@booking.com') {
-          if (password === '123456') {
-            const hostUser = {
-              id: 'd6a4dd59-3fc2-4189-a3bc-222b21ccfd03', // From seed
-              email: 'host@booking.com',
-              first_name: 'Chu',
-              last_name: 'Nha',
-              role: 'host',
-              role_id: 4,
-              avatar_url: 'https://ui-avatars.com/api/?name=Chu+Nha&background=random'
-            };
-            saveUserSession(hostUser);
-            resolve(hostUser);
-            return;
-          }
-        }
+      if (!response.ok) {
+        throw new Error(data.message || 'Đăng nhập thất bại');
+      }
 
-        // SIMULATE REGULAR USER LOGIN
-        const regularUser = {
-          id: '3af419cf-6323-4110-96c6-6923ce5a2b37', // From seed
-          email: identifier,
-          first_name: 'Khach',
-          last_name: 'Hang',
-          role: 'guest',
-          role_id: 5,
-          avatar_url: 'https://ui-avatars.com/api/?name=Khach+Hang'
-        };
-        saveUserSession(regularUser);
-        resolve(regularUser);
-
-      }, 800);
-    });
+      const user = data.user;
+      saveUserSession(user);
+      return user;
+    } catch (error) {
+       console.error('Login Error:', error);
+       throw error;
+    }
   };
 
   const saveUserSession = (userData) => {
@@ -98,20 +60,46 @@ export const AuthProvider = ({ children }) => {
   };
 
   const register = async (userData) => {
-    // Eliminate mock register logic for now, standard register flow
-    return new Promise(resolve => {
-      setTimeout(() => {
-        const newUser = {
-          ...userData,
-          id: 'new-user-id',
-          role: 'guest',
-          role_id: 5,
-          avatar_url: `https://ui-avatars.com/api/?name=${userData.firstName}+${userData.lastName}`
-        };
-        saveUserSession(newUser);
-        resolve(newUser);
-      }, 1000);
-    });
+    try {
+      let body;
+      const headers = {};
+
+      if (userData instanceof FormData) {
+        // Nếu là FormData (có file upload), KHÔNG set Content-Type
+        // Browser sẽ tự set multipart/form-data và boundary
+        body = userData;
+      } else {
+        // Nếu là object thường
+        body = JSON.stringify(userData);
+        headers['Content-Type'] = 'application/json';
+      }
+
+      const response = await fetch('http://localhost:3000/api/users/create', {
+        method: 'POST',
+        headers: headers,
+        body: body,
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || 'Đăng ký thất bại');
+      }
+
+      // Đăng ký thành công -> Lưu session (như logic cũ)
+      // Lưu ý: data.data là user object từ backend trả về
+      const newUser = data.data;
+
+      // Nếu backend chưa trả về token (vì endpoint create chỉ tạo user),
+      // ta có thể login luôn hoặc bắt user login lại.
+      // Ở đây ta tạm thời lưu user vào session để vào được Profile.
+      saveUserSession(newUser);
+
+      return newUser;
+    } catch (error) {
+      console.error('Register Error:', error);
+      throw error;
+    }
   };
 
   // --- Helper to check permissions ---

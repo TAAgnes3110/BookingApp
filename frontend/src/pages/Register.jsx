@@ -3,18 +3,20 @@ import { Link, useNavigate } from 'react-router-dom';
 import GlassCard from '../components/GlassCard';
 import GlassInput from '../components/GlassInput';
 import GlassButton from '../components/GlassButton';
-import { User, Mail, Lock, Phone, AlertCircle } from 'lucide-react';
+import { User, Mail, Lock, Phone, AlertCircle, Camera } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 
 const Register = () => {
   const [formData, setFormData] = useState({
-    name: '',
-    email: '',
+    firstName: '',
+    lastName: '',
     username: '',
-    phone: '',
+    email: '',
+    phoneNumber: '',
     password: '',
     confirmPassword: ''
   });
+  const [avatar, setAvatar] = useState(null);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
@@ -23,6 +25,12 @@ const Register = () => {
 
   const handleChange = (e) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
+  };
+
+  const handleFileChange = (e) => {
+    if (e.target.files && e.target.files[0]) {
+      setAvatar(e.target.files[0]);
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -41,8 +49,20 @@ const Register = () => {
 
     setIsLoading(true);
     try {
-      await register(formData.name, formData.email, formData.username, formData.password, formData.phone);
-      navigate('/profile');
+      // Create FormData for file upload
+      const data = new FormData();
+      data.append('firstName', formData.firstName);
+      data.append('lastName', formData.lastName);
+      data.append('username', formData.username);
+      data.append('email', formData.email);
+      data.append('phoneNumber', formData.phoneNumber);
+      data.append('password', formData.password);
+      if (avatar) {
+        data.append('avatar', avatar);
+      }
+
+      await register(data);
+      navigate('/login'); // Redirect to login after success (or profile if auto-login)
     } catch (err) {
       setError(err.message || 'Đăng ký thất bại');
     } finally {
@@ -66,12 +86,21 @@ const Register = () => {
         )}
 
         <form onSubmit={handleSubmit}>
-          <GlassInput
-            label="Họ và tên"
-            name="name"
-            value={formData.name}
+        <GlassInput
+            label="Họ (Last Name)"
+            name="lastName"
+            value={formData.lastName}
             onChange={handleChange}
-            placeholder="Nguyễn Văn A"
+            placeholder="Nguyễn"
+            icon={User}
+            required
+          />
+          <GlassInput
+            label="Tên (First Name)"
+            name="firstName"
+            value={formData.firstName}
+            onChange={handleChange}
+            placeholder="Văn A"
             icon={User}
             required
           />
@@ -96,14 +125,29 @@ const Register = () => {
           />
           <GlassInput
             label="Số điện thoại"
-            name="phone"
+            name="phoneNumber"
             type="tel"
-            value={formData.phone}
+            value={formData.phoneNumber}
             onChange={handleChange}
             placeholder="0912..."
             icon={Phone}
             required
           />
+
+          <div className="flex flex-col gap-2 mb-4 w-full">
+            <label className="text-slate-300 text-sm font-medium ml-1">Ảnh đại diện</label>
+            <div className="relative group">
+              <div className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400 group-focus-within:text-primary transition-colors">
+                <Camera size={20} />
+              </div>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleFileChange}
+                className="glass-input pl-11 py-2" // Basic styling to match glass input
+              />
+            </div>
+          </div>
           <GlassInput
             label="Mật khẩu"
             name="password"

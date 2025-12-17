@@ -8,3 +8,4 @@ const { hashPassword, comparePassword } = require('./password');
 
 module.exports.hashPassword = hashPassword;
 module.exports.comparePassword = comparePassword;
+module.exports.toCamelCase = require('./toCamelCase');
