@@ -5,6 +5,8 @@ const { authController } = require('../../controllers/index');
 
 const router = express.Router();
 
-router.post('/login', validate(authValidation.login), authController.login);
+router
+  .route('/loginWithSocial')
+  .post(validate(authValidation.socialLogin), authController.loginWithSocial);
 
 module.exports = router;

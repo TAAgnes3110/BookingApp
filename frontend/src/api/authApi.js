@@ -19,6 +19,11 @@ const authApi = {
   getMe() {
       const url = '/auth/me';
       return axiosClient.get(url);
+  },
+
+  loginWithSocial(data) {
+    const url = '/auth/loginWithSocial';
+    return axiosClient.post(url, data);
   }
 };
 

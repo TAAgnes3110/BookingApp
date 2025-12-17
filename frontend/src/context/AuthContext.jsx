@@ -100,6 +100,38 @@ export const AuthProvider = ({ children }) => {
       console.error('Register Error:', error);
       throw error;
     }
+
+  };
+
+  const loginWithSocial = async (token, provider) => {
+    try {
+      const response = await fetch('http://localhost:3000/v1/auth/loginWithSocial', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ access_token: token, provider })
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || 'Social login failed');
+      }
+
+      // Lưu session
+      const user = data.user;
+      const tokens = data.tokens;
+
+      setUser(user);
+      localStorage.setItem('user', JSON.stringify(user));
+      // localStorage.setItem('tokens', JSON.stringify(tokens)); // Uncomment nếu muốn lưu token
+
+      return user;
+    } catch (error) {
+      console.error('Social Login Error:', error);
+      throw error;
+    }
   };
 
   // --- Helper to check permissions ---
@@ -111,6 +143,7 @@ export const AuthProvider = ({ children }) => {
     login,
     logout,
     register,
+    loginWithSocial,
     loading,
     isAdmin,
     isHost

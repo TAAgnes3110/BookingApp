@@ -106,8 +106,8 @@ app.get('/health', (req, res) => {
 });
 
 // Các Routes API
-app.use('/api/users', userRouter);
-app.use('/api/auth', authRouter);
+app.use('/v1/users', userRouter);
+app.use('/v1/auth', authRouter);
 
 // Xử lý lỗi 404 (Not Found)
 app.use((req, res, next) => {

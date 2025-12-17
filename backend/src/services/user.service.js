@@ -7,12 +7,12 @@ const { hashPassword, toCamelCase } = require('../utils/index');
  * Loại bỏ các trường hệ thống không được phép cập nhật
  */
 const filterSystemFields = (data) => {
-  const filterd = { ...data};
+  const filtered = { ...data};
   const systemFields = ['id', 'createdAt', 'updatedAt', 'deletedAt', 'customId'];
   systemFields.forEach(field => {
-    delete filterd[field];
+    delete filtered[field];
   })
-  return filterd;
+  return filtered;
 }
 
 /**
@@ -139,11 +139,7 @@ const createUser = async (data) => {
 
   try {
     const filteredData = toCamelCase(filterSystemFields(data));
-    const { firstName, lastName, username, email, phoneNumber, password, roleId: inputRoleId } = filteredData;
-
-
-    if (!firstName || !lastName || !username || !email || !phoneNumber || !password)
-      throw new ApiError(httpStatus.BAD_REQUEST, 'User data is required');
+    const { username, email, phoneNumber, password, roleId: inputRoleId } = filteredData;
 
     if (await getConnection().models.User.findOne({ where: { email } })) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Email already taken');
@@ -155,11 +151,6 @@ const createUser = async (data) => {
 
     if (phoneNumber && await getConnection().models.User.findOne({ where: { phoneNumber } })) {
       throw new ApiError(httpStatus.BAD_REQUEST, 'Phone number already taken');
-    }
-
-    if (password) {
-      filteredData.passwordHash = await hashPassword(password);
-      delete filteredData.password;
     }
 
     if (password) {

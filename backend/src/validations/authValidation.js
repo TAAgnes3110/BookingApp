@@ -65,8 +65,8 @@ const socialLogin = {
     access_token: Joi.string().required().messages({
       'any.required': 'Access token is required'
     }),
-    provider: Joi.string().valid('google', 'facebook').required().messages({
-      'any.only': 'Provider must be google or facebook',
+    provider: Joi.string().valid('google', 'facebook', 'github').required().messages({
+      'any.only': 'Provider must be google, facebook or github',
       'any.required': 'Provider is required'
     })
   })
